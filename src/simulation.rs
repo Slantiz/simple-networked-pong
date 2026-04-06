@@ -50,6 +50,9 @@ struct FixedTimestepState {
     step: f64,
 }
 
+/// Maximum simulation steps per frame to prevent spiral-of-death after lag spikes
+const MAX_STEPS_PER_FRAME: u32 = 10;
+
 /// Runs at fixed intervals like FixedUpdate,
 /// but with peer-relative drift adjustment
 fn fixed_simulate(world: &mut World) {
@@ -58,18 +61,29 @@ fn fixed_simulate(world: &mut World) {
         state.accumulator += time.delta_secs_f64();
 
         let network = world.resource::<NetworkState>();
-        let stalled = network.stalled;
         let drift_diff = (network.local_drift - network.remote_drift) as f64;
         let correction = (drift_diff * DRIFT_CORRECTION_FACTOR)
             .clamp(-MAX_DRIFT_CORRECTION, MAX_DRIFT_CORRECTION);
         let effective_step = state.step * (1.0 + correction);
 
+        // Cap accumulated time to prevent runaway simulation after lag spikes
+        let max_accumulator = effective_step * MAX_STEPS_PER_FRAME as f64;
+        if state.accumulator > max_accumulator {
+            state.accumulator = max_accumulator;
+        }
+
         while state.accumulator >= effective_step {
             world.run_schedule(PreSimulate);
-            if !stalled {
-                world.run_schedule(Simulate);
-                world.run_schedule(PostSimulate);
+
+            // Re-read stalled every iteration (check_stall runs in PreSimulate)
+            let stalled = world.resource::<NetworkState>().stalled;
+            if stalled {
+                // Don't consume accumulator while stalled, retry next frame
+                break;
             }
+
+            world.run_schedule(Simulate);
+            world.run_schedule(PostSimulate);
             state.accumulator -= effective_step;
         }
     });
