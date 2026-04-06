@@ -61,19 +61,19 @@ fn game_ui(mut contexts: EguiContexts, state: Res<GameState>) -> Result {
             ui.horizontal(|ui| {
                 let score_width = 50.0;
                 ui.add_sized(
-                    [score_width, 32.0],
+                    [score_width, 48.0],
                     egui::Label::new(
                         egui::RichText::new(state.score_left.to_string())
-                            .size(32.0)
+                            .size(48.0)
                             .color(egui::Color32::WHITE),
                     ),
                 );
                 ui.add_space(20.0);
                 ui.add_sized(
-                    [score_width, 32.0],
+                    [score_width, 48.0],
                     egui::Label::new(
                         egui::RichText::new(state.score_right.to_string())
-                            .size(32.0)
+                            .size(48.0)
                             .color(egui::Color32::WHITE),
                     ),
                 );
@@ -203,7 +203,7 @@ fn connecting_ui(
                     ui.label(
                         egui::RichText::new("If no one joins, make sure another player is connecting to the same URL.\nIf both players are stuck, one of you may be behind a symmetric NAT\n(common on cellular, school, and corporate networks).")
                             .size(12.0)
-                            .color(egui::Color32::DARK_GRAY),
+                            .color(egui::Color32::GRAY),
                     );
                     ui.add_space(12.0);
                     if ui

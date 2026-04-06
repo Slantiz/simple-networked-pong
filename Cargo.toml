@@ -22,6 +22,7 @@ dev = ["bevy/dynamic_linking", "bevy/debug"]
 [dependencies]
 bevy = { version = "0.18.1", default-features = false, features = [
     "2d",
+    "wav",
 ] }
 bevy_egui = "0.39.1"
 bevy_matchbox = "0.14.0"
