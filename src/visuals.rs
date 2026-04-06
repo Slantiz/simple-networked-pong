@@ -18,7 +18,10 @@ impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(Material2dPlugin::<BackgroundMaterial>::default())
             .add_systems(Startup, (spawn_background, load_sounds))
-            .add_systems(OnEnter(AppState::Playing), spawn_entities)
+            .add_systems(
+                OnEnter(AppState::Playing),
+                (reset_sound_state, spawn_entities),
+            )
             .add_systems(OnExit(AppState::Playing), despawn_entities)
             .init_resource::<PrevBallVel>()
             .init_resource::<PrevScore>()
@@ -71,6 +74,11 @@ struct PrevBallVel(Vec2);
 struct PrevScore(u32, u32);
 
 // ——— Systems ———
+
+fn reset_sound_state(mut prev_vel: ResMut<PrevBallVel>, mut prev_score: ResMut<PrevScore>) {
+    *prev_vel = PrevBallVel::default();
+    *prev_score = PrevScore::default();
+}
 
 fn load_sounds(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(SoundEffects {

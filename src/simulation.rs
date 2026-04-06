@@ -15,11 +15,9 @@ pub struct SimulationPlugin;
 impl Plugin for SimulationPlugin {
     fn build(&self, app: &mut App) {
         app.init_schedule(Simulate)
+            .add_systems(OnEnter(AppState::Playing), reset_timestep)
             .add_systems(Update, fixed_simulate.run_if(in_state(AppState::Playing)))
-            .insert_resource(FixedTimestepState {
-                accumulator: 0.0,
-                step: SIMULATION_STEP,
-            })
+            .init_resource::<FixedTimestepState>()
             .insert_resource(GameState::new())
             .insert_resource(InputBuffer::new())
             .insert_resource(SnapshotBuffer::new())
@@ -48,6 +46,15 @@ pub struct PostSimulate;
 struct FixedTimestepState {
     accumulator: f64,
     step: f64,
+}
+
+impl Default for FixedTimestepState {
+    fn default() -> Self {
+        Self {
+            accumulator: 0.0,
+            step: SIMULATION_STEP,
+        }
+    }
 }
 
 /// Maximum simulation steps per frame to prevent spiral-of-death after lag spikes
@@ -179,6 +186,10 @@ impl GameState {
 }
 
 // ——— Systems ———
+
+fn reset_timestep(mut timestep: ResMut<FixedTimestepState>) {
+    timestep.accumulator = 0.0;
+}
 
 pub fn take_input_and_predict(
     mut input_buffer: ResMut<InputBuffer>,

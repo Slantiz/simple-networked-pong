@@ -97,7 +97,12 @@ struct StallTimer(f64);
 
 // ——— Systems ———
 
-fn open_socket(mut commands: Commands, url: Res<SignalingUrl>) {
+fn open_socket(
+    mut commands: Commands,
+    url: Res<SignalingUrl>,
+    mut connection_error: ResMut<ConnectionError>,
+) {
+    connection_error.0 = None;
     let socket = MatchboxSocket::new_unreliable(url.0.clone());
     commands.insert_resource(socket);
 }
