@@ -31,6 +31,9 @@ jobs:
             - name: Run wasm-bindgen
               run: wasm-bindgen --out-dir web/out --target web target/wasm32-unknown-unknown/release/pong.wasm
 
+            - name: Copy assets
+              run: cp -r assets web/assets
+
             - name: Upload artifact
               uses: actions/upload-pages-artifact@v3
               with:
