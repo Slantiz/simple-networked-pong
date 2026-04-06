@@ -33,6 +33,7 @@ Enter the signaling server URL (defaults to `wss://matchbox.slantiz.net/pong?nex
 - **Drift-based clock synchronization** — peers exchange frame drift values and adjust their simulation speed to stay in sync without adding input delay.
 - **Stalling** — simulation halts when too far ahead of the opponent to prevent exceeding the rollback buffer.
 - **Cascading rollback prevention** — after a rollback, predictions for all remaining unconfirmed frames are updated using the latest confirmed input.
+- **Sound effects** — bounce and score sounds :P.
 
 ## Architecture
 
@@ -42,8 +43,8 @@ The game is split into a few modules:
 |---|---|
 | `simulation.rs` | Deterministic game state, fixed timestep loop, input encoding, snapshot/rollback buffers |
 | `network.rs` | Matchbox socket management, input send/receive, rollback triggering, stall detection, drift sync |
-| `visuals.rs` | Bevy ECS rendering — sprites for paddles, ball, arena |
-| `ui.rs` | Score display and menus |
+| `visuals.rs` | Bevy ECS rendering — sprites for paddles, ball, arena, background shader, sound effects |
+| `ui.rs` | Score display, menus, game over screen |
 | `config.rs` | Central constants for game, simulation, and network tuning |
 | `states.rs` | App state machine |
 
@@ -55,7 +56,6 @@ Simulation runs in custom Bevy schedules (`PreSimulate`, `Simulate`, `PostSimula
 
 ## Missing Parts
 
-- **Win condition / game over screen** — Currently, the game lasts forever. A win condition is still to be implemented.
 - **Disconnect detection and handling** — no recovery or notification if a peer drops mid-game; the game just stalls and waits forever.
-- **Desync detection** — peers don't verify that their game states match; severe packet loss is warned about but not reconciled
-- **Sound effects** — no sound effects yet :P
+- **Desync detection** — peers don't verify that their game states match; severe packet loss is warned about but not reconciled.
+- **Rematch** — no way to replay without returning to the menu and reconnecting.
