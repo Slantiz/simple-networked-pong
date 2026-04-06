@@ -47,6 +47,10 @@ The game is split into a few modules:
 
 Simulation runs in custom Bevy schedules (`PreSimulate`, `Simulate`, `PostSimulate`) driven by a manual fixed timestep loop. The network systems run in `PreSimulate` in a specific order: `take_input_and_predict -> send_input -> receive_input -> rollback -> check_stall`.
 
+## Limitations
+
+- ⚠️ **NAT traversal** — the game uses WebRTC for peer-to-peer connections, which relies on STUN to punch through NAT. Players behind symmetric NATs (common on cellular networks, universities, corporate networks, and public WiFi) will fail to connect. A TURN relay server would solve this, but is not currently configured.
+
 ## Missing Parts
 
 - **Win condition / game over screen** — Currently, the game lasts forever. A win condition is still to be implemented.

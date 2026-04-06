@@ -199,6 +199,12 @@ fn connecting_ui(
                             .size(14.0)
                             .color(egui::Color32::GRAY),
                     );
+                    ui.add_space(16.0);
+                    ui.label(
+                        egui::RichText::new("If no one joins, make sure another player is connecting to the same URL.\nIf both players are stuck, one of you may be behind a symmetric NAT\n(common on cellular, school, and corporate networks).")
+                            .size(12.0)
+                            .color(egui::Color32::DARK_GRAY),
+                    );
                     ui.add_space(12.0);
                     if ui
                         .button(egui::RichText::new("Cancel").size(20.0))
