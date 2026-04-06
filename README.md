@@ -42,7 +42,7 @@ The game is split into a few modules:
 | Module | Purpose |
 |---|---|
 | `simulation.rs` | Deterministic game state, fixed timestep loop, input encoding, snapshot/rollback buffers |
-| `network.rs` | Matchbox socket management, input send/receive, rollback triggering, stall detection, drift sync |
+| `network.rs` | Matchbox socket management, input send/receive, rollback triggering, stall detection, drift sync, disconnect detection |
 | `visuals.rs` | Bevy ECS rendering — sprites for paddles, ball, arena, background shader, sound effects |
 | `ui.rs` | Score display, menus, game over screen |
 | `config.rs` | Central constants for game, simulation, and network tuning |
@@ -56,6 +56,6 @@ Simulation runs in custom Bevy schedules (`PreSimulate`, `Simulate`, `PostSimula
 
 ## Missing Parts
 
-- **Disconnect detection and handling** — no recovery or notification if a peer drops mid-game; the game just stalls and waits forever.
+- **Disconnect recovery** — peer disconnects are detected (via stall timeout and peer state) and shown to the player, but there is no reconnection or graceful recovery.
 - **Desync detection** — peers don't verify that their game states match; severe packet loss is warned about but not reconciled.
 - **Rematch** — no way to replay without returning to the menu and reconnecting.
