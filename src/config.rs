@@ -1,5 +1,9 @@
 // ——— Game ———
 pub const BALL_SPEED: f32 = 100.0;
+pub const SPEED_INCREASE_FACTOR: f32 = 1.1; // 10% faster each paddle hit
+pub const MAX_BALL_SPEED: f32 = 400.0;
+pub const MAX_BOUNCE_ANGLE: f32 = std::f32::consts::FRAC_PI_3; // 60 degrees
+pub const WIN_SCORE: u32 = 10;
 pub const PADDLE_SPEED: f32 = 150.0;
 pub const BALL_RADIUS: f32 = 4.0;
 pub const PADDLE_WIDTH: f32 = 6.0;

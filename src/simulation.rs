@@ -3,7 +3,8 @@ use bevy::{ecs::schedule::ScheduleLabel, prelude::*};
 use crate::{
     config::{
         ARENA_HEIGHT, ARENA_WIDTH, BALL_RADIUS, BALL_SPEED, BUFFER_SIZE, DRIFT_CORRECTION_FACTOR,
-        MAX_DRIFT_CORRECTION, PADDLE_HEIGHT, PADDLE_SPEED, PADDLE_WIDTH, SIMULATION_STEP,
+        MAX_BALL_SPEED, MAX_BOUNCE_ANGLE, MAX_DRIFT_CORRECTION, PADDLE_HEIGHT, PADDLE_SPEED,
+        PADDLE_WIDTH, SIMULATION_STEP, SPEED_INCREASE_FACTOR,
     },
     network::{LocalPlayer, NetworkState, Side},
     states::AppState,
@@ -150,10 +151,10 @@ pub struct GameState {
 }
 
 impl GameState {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             ball_pos: Vec2::ZERO,
-            ball_vel: Vec2::new(BALL_SPEED, BALL_SPEED),
+            ball_vel: Vec2::new(1.0, 1.0).normalize() * BALL_SPEED,
             paddle_left_y: 0.0,
             paddle_right_y: 0.0,
             score_left: 0,
@@ -275,23 +276,37 @@ pub fn step(state: &GameState, input_left: u8, input_right: u8) -> GameState {
         && next.ball_pos.x - BALL_RADIUS < paddle_x
         && (next.ball_pos.y - next.paddle_right_y).abs() < half_paddle + BALL_RADIUS;
 
-    if hit_left {
-        next.ball_vel.x = next.ball_vel.x.abs();
-    }
-    if hit_right {
-        next.ball_vel.x = -next.ball_vel.x.abs();
+    if hit_left || hit_right {
+        let speed = next.ball_vel.length();
+        let new_speed = (speed * SPEED_INCREASE_FACTOR).min(MAX_BALL_SPEED);
+
+        // Offset from paddle center, normalized to -1..1
+        let paddle_y = if hit_left {
+            next.paddle_left_y
+        } else {
+            next.paddle_right_y
+        };
+        let offset = ((next.ball_pos.y - paddle_y) / half_paddle).clamp(-1.0, 1.0);
+        let angle = offset * MAX_BOUNCE_ANGLE;
+
+        let dir_x: f32 = if hit_left { 1.0 } else { -1.0 };
+        next.ball_vel = Vec2::new(dir_x * angle.cos(), angle.sin()) * new_speed;
     }
 
-    // scoring
-    if next.ball_pos.x - BALL_RADIUS < -ARENA_WIDTH / 2.0 {
+    // scoring (resets speed, alternates serve direction)
+    let scored_right = next.ball_pos.x - BALL_RADIUS < -ARENA_WIDTH / 2.0;
+    let scored_left = next.ball_pos.x + BALL_RADIUS > ARENA_WIDTH / 2.0;
+    if scored_right {
         next.score_right += 1;
-        next.ball_pos = Vec2::ZERO;
-        next.ball_vel = Vec2::new(BALL_SPEED, BALL_SPEED);
     }
-    if next.ball_pos.x + BALL_RADIUS > ARENA_WIDTH / 2.0 {
+    if scored_left {
         next.score_left += 1;
+    }
+    if scored_right || scored_left {
         next.ball_pos = Vec2::ZERO;
-        next.ball_vel = Vec2::new(-BALL_SPEED, BALL_SPEED);
+        let total = next.score_left + next.score_right;
+        let dir_x: f32 = if total % 2 == 0 { 1.0 } else { -1.0 };
+        next.ball_vel = Vec2::new(dir_x, 1.0).normalize() * BALL_SPEED;
     }
 
     next

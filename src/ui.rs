@@ -5,7 +5,7 @@ use crate::{
     config::DEFAULT_SIGNALING_URL,
     network::{ConnectionError, SignalingUrl},
     simulation::GameState,
-    states::AppState,
+    states::{AppState, GameResult},
 };
 
 pub struct UiPlugin;
@@ -23,6 +23,7 @@ impl Plugin for UiPlugin {
                     menu_ui.run_if(in_state(AppState::Menu)),
                     connecting_ui.run_if(in_state(AppState::Connecting)),
                     game_ui.run_if(in_state(AppState::Playing)),
+                    game_over_ui.run_if(in_state(AppState::GameOver)),
                 ),
             );
     }
@@ -130,6 +131,41 @@ fn menu_ui(
                     info!("Connecting to {url}");
                     commands.insert_resource(SignalingUrl(url));
                     next.set(AppState::Connecting);
+                }
+            });
+        });
+
+    Ok(())
+}
+
+fn game_over_ui(
+    mut contexts: EguiContexts,
+    result: Res<GameResult>,
+    mut next: ResMut<NextState<AppState>>,
+) -> Result {
+    let ctx = contexts.ctx_mut()?;
+
+    egui::CentralPanel::default()
+        .frame(egui::Frame::NONE)
+        .show(ctx, |ui| {
+            ui.add_space(ui.available_height() / 4.0);
+
+            ui.vertical_centered(|ui| {
+                let (text, color) = if result.won {
+                    ("You Won", egui::Color32::from_rgb(50, 205, 50))
+                } else {
+                    ("You Lost", egui::Color32::from_rgb(220, 50, 50))
+                };
+
+                ui.label(egui::RichText::new(text).size(48.0).color(color));
+
+                ui.add_space(ui.available_height() / 4.0);
+
+                if ui
+                    .button(egui::RichText::new("Back to menu").size(20.0))
+                    .clicked()
+                {
+                    next.set(AppState::Menu);
                 }
             });
         });

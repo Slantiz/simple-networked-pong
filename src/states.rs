@@ -8,3 +8,8 @@ pub enum AppState {
     Playing,
     GameOver,
 }
+
+#[derive(Resource)]
+pub struct GameResult {
+    pub won: bool,
+}

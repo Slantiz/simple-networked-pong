@@ -5,11 +5,12 @@ use log::warn;
 use crate::{
     config::{
         BUFFER_SIZE, FRAME_SIZE, FRAMES_TO_SEND, HEADER_SIZE, MAX_ROLLBACK_FRAMES, MESSAGE_SIZE,
+        WIN_SCORE,
     },
     simulation::{
         GameState, InputBuffer, PreSimulate, SnapshotBuffer, step, take_input_and_predict,
     },
-    states::AppState,
+    states::{AppState, GameResult},
 };
 
 const CHANNEL_ID: usize = 0;
@@ -21,6 +22,7 @@ impl Plugin for NetworkPlugin {
         app.add_systems(OnEnter(AppState::Connecting), open_socket)
             .add_systems(Update, wait_for_peer.run_if(in_state(AppState::Connecting)))
             .add_systems(OnEnter(AppState::Menu), cleanup_socket)
+            .add_systems(OnEnter(AppState::GameOver), cleanup_socket)
             .insert_resource(NetworkState::new())
             .insert_resource(ConnectionError::default())
             .add_systems(OnEnter(AppState::Playing), assign_sides)
@@ -35,7 +37,8 @@ impl Plugin for NetworkPlugin {
                 )
                     .chain()
                     .run_if(in_state(AppState::Playing)),
-            );
+            )
+            .add_systems(Update, check_win.run_if(in_state(AppState::Playing)));
     }
 }
 
@@ -64,7 +67,7 @@ pub struct NetworkState {
 }
 
 impl NetworkState {
-    fn new() -> Self {
+    pub fn new() -> Self {
         NetworkState {
             rollback_to: None,
             agreed_frame: None,
@@ -113,8 +116,14 @@ fn wait_for_peer(
     }
 }
 
-fn cleanup_socket(mut commands: Commands) {
+fn cleanup_socket(
+    mut commands: Commands,
+    mut state: ResMut<GameState>,
+    mut network_state: ResMut<NetworkState>,
+) {
     commands.remove_resource::<MatchboxSocket>();
+    *state = GameState::new();
+    *network_state = NetworkState::new();
 }
 
 fn assign_sides(mut commands: Commands, mut socket: ResMut<MatchboxSocket>) {
@@ -327,6 +336,27 @@ fn rollback(
     }
 
     *state = resim;
+}
+
+fn check_win(
+    state: Res<GameState>,
+    local_player: Res<LocalPlayer>,
+    mut commands: Commands,
+    mut next: ResMut<NextState<AppState>>,
+) {
+    let winner = if state.score_left >= WIN_SCORE {
+        Some(Side::Left)
+    } else if state.score_right >= WIN_SCORE {
+        Some(Side::Right)
+    } else {
+        None
+    };
+
+    if let Some(side) = winner {
+        let won = local_player.side == side;
+        commands.insert_resource(GameResult { won });
+        next.set(AppState::GameOver);
+    }
 }
 
 fn check_stall(state: Res<GameState>, mut network_state: ResMut<NetworkState>) {

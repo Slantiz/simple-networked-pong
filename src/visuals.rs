@@ -19,6 +19,7 @@ impl Plugin for GamePlugin {
         app.add_plugins(Material2dPlugin::<BackgroundMaterial>::default())
             .add_systems(Startup, (spawn_background, load_sounds))
             .add_systems(OnEnter(AppState::Playing), spawn_entities)
+            .add_systems(OnExit(AppState::Playing), despawn_entities)
             .init_resource::<PrevBallVel>()
             .init_resource::<PrevScore>()
             .add_systems(Update, update_background_time)
@@ -44,6 +45,9 @@ impl Material2d for BackgroundMaterial {
 }
 
 // ——— Components & Resources ———
+
+#[derive(Component)]
+pub struct GameEntity;
 
 #[derive(Component)]
 pub struct BallMarker;
@@ -106,12 +110,14 @@ fn spawn_entities(
         MeshMaterial2d(materials.add(Color::WHITE)),
         Transform::from_xyz(-paddle_x, 0.0, 0.0),
         LeftPaddleMarker,
+        GameEntity,
     ));
     commands.spawn((
         Mesh2d(meshes.add(Rectangle::new(PADDLE_WIDTH, PADDLE_HEIGHT))),
         MeshMaterial2d(materials.add(Color::WHITE)),
         Transform::from_xyz(paddle_x, 0.0, 0.0),
         RightPaddleMarker,
+        GameEntity,
     ));
 
     // Spawn arena boundary lines
@@ -122,11 +128,13 @@ fn spawn_entities(
         Mesh2d(wall_mesh.clone()),
         MeshMaterial2d(wall_material.clone()),
         Transform::from_xyz(-wall_x, 0.0, 0.0),
+        GameEntity,
     ));
     commands.spawn((
         Mesh2d(wall_mesh),
         MeshMaterial2d(wall_material),
         Transform::from_xyz(wall_x, 0.0, 0.0),
+        GameEntity,
     ));
 
     // Spawn ball
@@ -135,7 +143,14 @@ fn spawn_entities(
         MeshMaterial2d(materials.add(Color::WHITE)),
         Transform::from_xyz(0.0, 0.0, 0.0),
         BallMarker,
+        GameEntity,
     ));
+}
+
+fn despawn_entities(mut commands: Commands, entities: Query<Entity, With<GameEntity>>) {
+    for entity in &entities {
+        commands.entity(entity).despawn();
+    }
 }
 
 fn sync_simulation(
