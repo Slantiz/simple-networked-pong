@@ -15,7 +15,7 @@ pub const MAX_DRIFT_CORRECTION: f64 = 0.05; // 5% cap
 pub const DRIFT_CORRECTION_FACTOR: f64 = 0.001;
 
 // ——— Network ———
-pub const DEFAULT_SIGNALING_URL: &str = "wss://localhost:3536/pong?next=2";
+pub const DEFAULT_SIGNALING_URL: &str = "wss://matchbox.slantiz.net/pong?next=2";
 pub const FRAMES_TO_SEND: usize = 8;
 pub const FRAME_SIZE: usize = 9; // 8 bytes frame number + 1 byte input
 pub const HEADER_SIZE: usize = 2; // i16 drift

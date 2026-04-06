@@ -8,7 +8,9 @@ This repo contains a simple networked Pong clone written with Bevy/Rust! The gam
 
 ## Running
 
-Launch two instances of the game using:
+You can play the game in your browser at [pong.slantiz.net](https://pong.slantiz.net).
+
+Alternatively, launch two instances of the game locally using:
 
 ```sh
 cargo run
@@ -21,7 +23,7 @@ cargo install matchbox_server
 matchbox_server
 ```
 
-Enter the signaling server URL (defaults to `wss://localhost:3536/pong?next=2`) and press Enter to connect. Both clients get matched and the game begins.
+Enter the signaling server URL (defaults to `wss://matchbox.slantiz.net/pong?next=2`) and press Enter to connect. Both clients get matched and the game begins.
 
 ## Features
 
