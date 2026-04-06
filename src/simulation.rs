@@ -283,12 +283,12 @@ pub fn step(state: &GameState, input_left: u8, input_right: u8) -> GameState {
     }
 
     // scoring
-    if next.ball_pos.x < -ARENA_WIDTH / 2.0 {
+    if next.ball_pos.x - BALL_RADIUS < -ARENA_WIDTH / 2.0 {
         next.score_right += 1;
         next.ball_pos = Vec2::ZERO;
         next.ball_vel = Vec2::new(BALL_SPEED, BALL_SPEED);
     }
-    if next.ball_pos.x > ARENA_WIDTH / 2.0 {
+    if next.ball_pos.x + BALL_RADIUS > ARENA_WIDTH / 2.0 {
         next.score_left += 1;
         next.ball_pos = Vec2::ZERO;
         next.ball_vel = Vec2::new(-BALL_SPEED, BALL_SPEED);
