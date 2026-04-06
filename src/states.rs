@@ -7,9 +7,16 @@ pub enum AppState {
     Connecting,
     Playing,
     GameOver,
+    Abort,
 }
 
 #[derive(Resource)]
 pub struct GameResult {
     pub won: bool,
+}
+
+#[derive(Resource)]
+pub struct AbortReason {
+    pub title: String,
+    pub subtitle: String,
 }

@@ -5,7 +5,7 @@ use crate::{
     config::DEFAULT_SIGNALING_URL,
     network::{ConnectionError, SignalingUrl},
     simulation::GameState,
-    states::{AppState, GameResult},
+    states::{AbortReason, AppState, GameResult},
 };
 
 pub struct UiPlugin;
@@ -24,6 +24,7 @@ impl Plugin for UiPlugin {
                     connecting_ui.run_if(in_state(AppState::Connecting)),
                     game_ui.run_if(in_state(AppState::Playing)),
                     game_over_ui.run_if(in_state(AppState::GameOver)),
+                    abort_ui.run_if(in_state(AppState::Abort)),
                 ),
             );
     }
@@ -248,6 +249,47 @@ fn connecting_ui(
                     {
                         next.set(AppState::Menu);
                     }
+                }
+            });
+        });
+
+    Ok(())
+}
+
+fn abort_ui(
+    mut contexts: EguiContexts,
+    reason: Res<AbortReason>,
+    mut next: ResMut<NextState<AppState>>,
+) -> Result {
+    let ctx = contexts.ctx_mut()?;
+
+    egui::CentralPanel::default()
+        .frame(egui::Frame::NONE)
+        .show(ctx, |ui| {
+            ui.add_space(ui.available_height() / 4.0);
+
+            ui.vertical_centered(|ui| {
+                ui.label(
+                    egui::RichText::new(&reason.title)
+                        .size(48.0)
+                        .color(egui::Color32::from_rgb(220, 50, 50)),
+                );
+
+                ui.add_space(12.0);
+
+                ui.label(
+                    egui::RichText::new(&reason.subtitle)
+                        .size(18.0)
+                        .color(egui::Color32::GRAY),
+                );
+
+                ui.add_space(ui.available_height() / 4.0);
+
+                if ui
+                    .button(egui::RichText::new("Back to menu").size(20.0))
+                    .clicked()
+                {
+                    next.set(AppState::Menu);
                 }
             });
         });

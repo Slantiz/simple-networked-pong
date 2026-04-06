@@ -10,10 +10,11 @@ use crate::{
     simulation::{
         GameState, InputBuffer, PreSimulate, SnapshotBuffer, step, take_input_and_predict,
     },
-    states::{AppState, GameResult},
+    states::{AbortReason, AppState, GameResult},
 };
 
 const CHANNEL_ID: usize = 0;
+const STALL_TIMEOUT_SECS: f64 = 3.0;
 
 pub struct NetworkPlugin;
 
@@ -23,8 +24,10 @@ impl Plugin for NetworkPlugin {
             .add_systems(Update, wait_for_peer.run_if(in_state(AppState::Connecting)))
             .add_systems(OnEnter(AppState::Menu), cleanup_socket)
             .add_systems(OnEnter(AppState::GameOver), cleanup_socket)
+            .add_systems(OnEnter(AppState::Abort), cleanup_socket)
             .insert_resource(NetworkState::new())
             .insert_resource(ConnectionError::default())
+            .init_resource::<StallTimer>()
             .add_systems(OnEnter(AppState::Playing), assign_sides)
             .add_systems(
                 PreSimulate,
@@ -38,7 +41,10 @@ impl Plugin for NetworkPlugin {
                     .chain()
                     .run_if(in_state(AppState::Playing)),
             )
-            .add_systems(Update, check_win.run_if(in_state(AppState::Playing)));
+            .add_systems(
+                Update,
+                (check_win, check_disconnect).run_if(in_state(AppState::Playing)),
+            );
     }
 }
 
@@ -86,6 +92,9 @@ pub struct SignalingUrl(pub String);
 #[derive(Resource, Default)]
 pub struct ConnectionError(pub Option<String>);
 
+#[derive(Resource, Default)]
+struct StallTimer(f64);
+
 // ——— Systems ———
 
 fn open_socket(mut commands: Commands, url: Res<SignalingUrl>) {
@@ -120,10 +129,12 @@ fn cleanup_socket(
     mut commands: Commands,
     mut state: ResMut<GameState>,
     mut network_state: ResMut<NetworkState>,
+    mut stall_timer: ResMut<StallTimer>,
 ) {
     commands.remove_resource::<MatchboxSocket>();
     *state = GameState::new();
     *network_state = NetworkState::new();
+    stall_timer.0 = 0.0;
 }
 
 fn assign_sides(mut commands: Commands, mut socket: ResMut<MatchboxSocket>) {
@@ -377,5 +388,44 @@ fn check_stall(state: Res<GameState>, mut network_state: ResMut<NetworkState>) {
         } else {
             warn!("Stalling: agreed frame not set (None)!")
         }
+    }
+}
+
+fn check_disconnect(
+    time: Res<Time>,
+    network_state: Res<NetworkState>,
+    mut stall_timer: ResMut<StallTimer>,
+    mut socket: ResMut<MatchboxSocket>,
+    mut commands: Commands,
+    mut next: ResMut<NextState<AppState>>,
+) {
+    // Check for explicit peer disconnect
+    if let Ok(peers) = socket.try_update_peers() {
+        for (peer, state) in peers {
+            if state == PeerState::Disconnected {
+                warn!("Peer {peer} disconnected");
+                commands.insert_resource(AbortReason {
+                    title: "Connection Lost".to_string(),
+                    subtitle: "The other player disconnected.".to_string(),
+                });
+                next.set(AppState::Abort);
+                return;
+            }
+        }
+    }
+
+    // Check for stall timeout (peer may have disappeared without clean disconnect)
+    if network_state.stalled {
+        stall_timer.0 += time.delta_secs_f64();
+        if stall_timer.0 >= STALL_TIMEOUT_SECS {
+            warn!("Stall timeout reached ({STALL_TIMEOUT_SECS}s)");
+            commands.insert_resource(AbortReason {
+                title: "Connection Lost".to_string(),
+                subtitle: "No data received from the other player.".to_string(),
+            });
+            next.set(AppState::Abort);
+        }
+    } else {
+        stall_timer.0 = 0.0;
     }
 }
