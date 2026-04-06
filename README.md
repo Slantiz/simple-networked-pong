@@ -2,6 +2,8 @@
 
 This repo contains a simple networked Pong clone written with Bevy/Rust! The game uses a WebRTC peer-to-peer connection to synchronize game state and performs input prediction, rollbacks, drift-based clock synchronization, and stalling. I made this project because I wanted to explore Bevy/Rust as well as how prediction-based deterministic netcode could be implemented. The source code should therefore be taken with a grain of salt ;)
 
+![Gameplay](screenshots/gameplay.png)
+
 ## Prerequisites
 
 - [Rust](https://rustup.rs/) (edition 2024)
@@ -9,6 +11,7 @@ This repo contains a simple networked Pong clone written with Bevy/Rust! The gam
 ## Running
 
 You can play the game in your browser at [pong.slantiz.net](https://pong.slantiz.net).
+Make sure your browser supports WebGPU and have it enabled, or else you will see the game loading forever.
 
 Alternatively, launch two instances of the game locally using:
 
@@ -39,23 +42,20 @@ Enter the signaling server URL (defaults to `wss://matchbox.slantiz.net/pong?nex
 
 The game is split into a few modules:
 
-| Module | Purpose |
-|---|---|
-| `simulation.rs` | Deterministic game state, fixed timestep loop, input encoding, snapshot/rollback buffers |
-| `network.rs` | Matchbox socket management, input send/receive, rollback triggering, stall detection, drift sync, disconnect detection |
-| `visuals.rs` | Bevy ECS rendering — sprites for paddles, ball, arena, background shader, sound effects |
-| `ui.rs` | Score display, menus, game over screen |
-| `config.rs` | Central constants for game, simulation, and network tuning |
-| `states.rs` | App state machine |
+| Module          | Purpose                                                                                                                |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `simulation.rs` | Deterministic game state, fixed timestep loop, input encoding, snapshot/rollback buffers                               |
+| `network.rs`    | Matchbox socket management, input send/receive, rollback triggering, stall detection, drift sync, disconnect detection |
+| `visuals.rs`    | Bevy ECS rendering — sprites for paddles, ball, arena, background shader, sound effects                                |
+| `ui.rs`         | Score display, menus, game over screen                                                                                 |
+| `config.rs`     | Central constants for game, simulation, and network tuning                                                             |
+| `states.rs`     | App state machine                                                                                                      |
 
 Simulation runs in custom Bevy schedules (`PreSimulate`, `Simulate`, `PostSimulate`) driven by a manual fixed timestep loop. The network systems run in `PreSimulate` in a specific order: `take_input_and_predict -> send_input -> receive_input -> rollback -> check_stall`.
 
 ## Limitations
 
 - ⚠️ **NAT traversal** — the game uses WebRTC for peer-to-peer connections, which relies on STUN to punch through NAT. Players behind symmetric NATs (common on cellular networks, universities, corporate networks, and public WiFi) will fail to connect. A TURN relay server would solve this, but is not currently configured.
-
-## Missing Parts
-
 - **Disconnect recovery** — peer disconnects are detected (via stall timeout and peer state) and shown to the player, but there is no reconnection or graceful recovery.
 - **Desync detection** — peers don't verify that their game states match; severe packet loss is warned about but not reconciled.
 - **Rematch** — no way to replay without returning to the menu and reconnecting.
